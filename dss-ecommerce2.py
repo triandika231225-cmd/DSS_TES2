@@ -39,8 +39,8 @@ def load_toko_data():
         ],
         'rating': [4.9, 4.7, 4.8, 4.6, 4.8, 4.5, 4.9, 4.7, 4.6, 4.8, 4.7, 4.9, 4.5, 4.8, 4.7, 4.9, 4.6, 4.8, 4.9, 4.7],
         'jumlah_ulasan': [2500, 1800, 2200, 1500, 1900, 1200, 2800, 1600, 1400, 2100, 1700, 2400, 1300, 2000, 1500, 2600, 1400, 1800, 2900, 1600],
-        'waktu_pengiriman': [1, 2, 2, 3, 1, 3, 1, 2, 2, 2, 1, 1, 3, 2, 3, 1, 2, 2, 1, 3],
-        'tingkat_sukses': [98, 95, 96, 93, 97, 92, 99, 96, 94, 97, 95, 98, 91, 96, 93, 99, 94, 97, 99, 92],
+        # 'waktu_pengiriman': [1, 2, 2, 3, 1, 3, 1, 2, 2, 2, 1, 1, 3, 2, 3, 1, 2, 2, 1, 3],  # DIHAPUS DARI PERHITUNGAN
+        # 'tingkat_sukses': [98, 95, 96, 93, 97, 92, 99, 96, 94, 97, 95, 98, 91, 96, 93, 99, 94, 97, 99, 92],  # DIHAPUS DARI PERHITUNGAN
         'tingkat_komplain': [1, 3, 2, 5, 2, 6, 1, 3, 4, 2, 3, 1, 7, 2, 5, 1, 4, 2, 1, 6],
         'jumlah_promo': [5, 3, 4, 2, 4, 2, 6, 3, 3, 5, 4, 5, 2, 4, 2, 6, 3, 4, 7, 3],
         'total_produk': [1500, 800, 1200, 600, 900, 500, 1800, 850, 700, 1100, 950, 1400, 550, 1000, 650, 1700, 750, 950, 2000, 800],
@@ -66,18 +66,14 @@ def calculate_score(df, weights):
     # Normalisasi kriteria (semakin tinggi semakin baik)
     df_score['norm_rating'] = normalize_data(df, 'rating')
     df_score['norm_ulasan'] = normalize_data(df, 'jumlah_ulasan')
-    df_score['norm_pengiriman'] = normalize_data(df, 'waktu_pengiriman', reverse=True)
-    df_score['norm_sukses'] = normalize_data(df, 'tingkat_sukses')
     df_score['norm_komplain'] = normalize_data(df, 'tingkat_komplain', reverse=True)
     df_score['norm_promo'] = normalize_data(df, 'jumlah_promo')
     df_score['norm_respon'] = normalize_data(df, 'respon_chat_menit', reverse=True)
     
-    # Hitung skor total
+    # Hitung skor total (penghilangan: pengiriman, sukses)
     df_score['skor_total'] = (
         df_score['norm_rating'] * weights['rating'] +
         df_score['norm_ulasan'] * weights['ulasan'] +
-        df_score['norm_pengiriman'] * weights['pengiriman'] +
-        df_score['norm_sukses'] * weights['sukses'] +
         df_score['norm_komplain'] * weights['komplain'] +
         df_score['norm_promo'] * weights['promo'] +
         df_score['norm_respon'] * weights['respon']
@@ -94,14 +90,6 @@ def generate_reason(row):
     
     if row['rating'] >= 4.8:
         reasons.append(f"rating tinggi ({row['rating']}/5)")
-    
-    if row['waktu_pengiriman'] <= 1:
-        reasons.append("pengiriman tercepat (1 hari)")
-    elif row['waktu_pengiriman'] <= 2:
-        reasons.append("pengiriman cepat (2 hari)")
-    
-    if row['tingkat_sukses'] >= 97:
-        reasons.append(f"tingkat keberhasilan pesanan {row['tingkat_sukses']}%")
     
     if row['tingkat_komplain'] <= 2:
         reasons.append("jarang menerima komplain")
@@ -159,18 +147,15 @@ with st.sidebar:
     st.subheader("🎯 Prioritas Kriteria")
     st.caption("Sesuaikan bobot sesuai prioritas Anda (total: 100%)")
     
-    # Slider untuk bobot (nilai 0-100)
-    weight_rating = st.slider("Rating Toko", 0, 100, 25, 5)
-    weight_ulasan = st.slider("Jumlah Ulasan", 0, 100, 10, 5)
-    weight_pengiriman = st.slider("Kecepatan Pengiriman", 0, 100, 20, 5)
-    weight_sukses = st.slider("Tingkat Keberhasilan", 0, 100, 15, 5)
-    weight_komplain = st.slider("Tingkat Komplain (rendah)", 0, 100, 10, 5)
-    weight_promo = st.slider("Jumlah Promo", 0, 100, 10, 5)
-    weight_respon = st.slider("Respon Chat", 0, 100, 10, 5)
+    # Slider untuk bobot (nilai 0-100) -- penghilangan: Kecepatan Pengiriman, Tingkat Keberhasilan
+    weight_rating = st.slider("Rating Toko", 0, 100, 35, 5)
+    weight_ulasan = st.slider("Jumlah Ulasan", 0, 100, 15, 5)
+    weight_komplain = st.slider("Tingkat Komplain (rendah)", 0, 100, 15, 5)
+    weight_promo = st.slider("Jumlah Promo", 0, 100, 15, 5)
+    weight_respon = st.slider("Respon Chat", 0, 100, 20, 5)
     
-    total_weight = weight_rating + weight_ulasan + weight_pengiriman + weight_sukses + weight_komplain + weight_promo + weight_respon
+    total_weight = weight_rating + weight_ulasan + weight_komplain + weight_promo + weight_respon
     
-    # NOTE: saya hapus st.success untuk menghilangkan kotak hijau "Total bobot: 100%"
     if total_weight != 100:
         st.warning(f"⚠️ Total bobot: {total_weight}%. Sistem akan menormalisasi bobot agar jumlah = 100%.")
     
@@ -178,8 +163,6 @@ with st.sidebar:
     raw_weights = {
         'rating': weight_rating / 100,
         'ulasan': weight_ulasan / 100,
-        'pengiriman': weight_pengiriman / 100,
-        'sukses': weight_sukses / 100,
         'komplain': weight_komplain / 100,
         'promo': weight_promo / 100,
         'respon': weight_respon / 100
@@ -193,8 +176,6 @@ with st.sidebar:
         st.info("Semua bobot 0 → digunakan bobot rata-rata otomatis.")
     else:
         normalized_weights = {k: v / sum_raw for k, v in raw_weights.items()}
-    
-    # NOTE: saya hapus tampilan JSON bobot yang dinormalisasi di sini sesuai permintaan.
     
     st.markdown("---")
     cari_button = st.button("🔍 Cari Rekomendasi", type="primary", use_container_width=True)
@@ -249,11 +230,10 @@ if cari_button:
                         st.markdown(f"### {row['nama_toko']}")
                         st.markdown(f"**Kategori:** {row['kategori']} | **Lokasi:** {row['lokasi']}")
                         
-                        col_a, col_b, col_c, col_d = st.columns(4)
+                        col_a, col_b, col_c = st.columns(3)
                         col_a.metric("⭐ Rating", f"{row['rating']}/5")
-                        col_b.metric("📦 Pengiriman", f"{row['waktu_pengiriman']} hari")
-                        col_c.metric("🎁 Promo", row['jumlah_promo'])
-                        col_d.metric("💬 Respon", f"{row['respon_chat_menit']} mnt")
+                        col_b.metric("💬 Ulasan", f"{row['jumlah_ulasan']:,}")
+                        col_c.metric("⚠️ Komplain", f"{row['tingkat_komplain']}%")
                         
                         st.info(f"💡 **Alasan:** {row['alasan']}")
                     
@@ -265,7 +245,6 @@ if cari_button:
                             with st.expander("Detail Lengkap", expanded=True):
                                 st.write(f"**Jumlah Ulasan:** {row['jumlah_ulasan']:,}")
                                 st.write(f"**Total Produk:** {row['total_produk']:,}")
-                                st.write(f"**Tingkat Sukses:** {row['tingkat_sukses']}%")
                                 st.write(f"**Tingkat Komplain:** {row['tingkat_komplain']}%")
                     
                     st.markdown("---")
@@ -273,10 +252,10 @@ if cari_button:
         # Tampilkan semua hasil dalam tabel
         st.subheader("📋 Semua Hasil Rekomendasi")
         
-        df_table = df_result[['nama_toko', 'kategori', 'lokasi', 'rating', 'waktu_pengiriman', 
-                                'jumlah_promo', 'tingkat_sukses', 'skor_persen']].copy()
-        df_table.columns = ['Nama Toko', 'Kategori', 'Lokasi', 'Rating', 'Pengiriman (hari)', 
-                            'Promo', 'Sukses (%)', 'Skor (%)']
+        df_table = df_result[['nama_toko', 'kategori', 'lokasi', 'rating', 
+                                'jumlah_ulasan', 'jumlah_promo', 'tingkat_komplain', 'skor_persen']].copy()
+        df_table.columns = ['Nama Toko', 'Kategori', 'Lokasi', 'Rating', 
+                            'Ulasan', 'Promo', 'Komplain (%)', 'Skor (%)']
         df_table = df_table.reset_index(drop=True)
         df_table.index = df_table.index + 1
         
@@ -289,11 +268,11 @@ if cari_button:
         with col1:
             st.metric("Rata-rata Rating", f"{df_result['rating'].mean():.2f}/5")
         with col2:
-            st.metric("Rata-rata Pengiriman", f"{df_result['waktu_pengiriman'].mean():.1f} hari")
+            st.metric("Rata-rata Ulasan", f"{df_result['jumlah_ulasan'].mean():.1f}")
         with col3:
             st.metric("Rata-rata Promo", f"{df_result['jumlah_promo'].mean():.1f}")
         with col4:
-            st.metric("Rata-rata Sukses", f"{df_result['tingkat_sukses'].mean():.1f}%")
+            st.metric("Rata-rata Komplain", f"{df_result['tingkat_komplain'].mean():.1f}%")
 
 else:
     # Tampilan awal
@@ -336,8 +315,6 @@ else:
         **Kriteria Penilaian:**
         - 📊 Rating pelanggan
         - 💬 Jumlah ulasan
-        - 🚀 Kecepatan pengiriman
-        - ✅ Tingkat keberhasilan pesanan
         - ⚠️ Tingkat komplain
         - 🎁 Jumlah promo aktif
         - 💬 Kecepatan respon chat
