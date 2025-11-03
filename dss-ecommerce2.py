@@ -272,15 +272,28 @@ if cari_button:
         
         # Tampilkan semua hasil dalam tabel
         st.subheader("📋 Semua Hasil Rekomendasi")
-
-# Batasi hanya 5 toko teratas
-toko_teratas = hasil_df.head(5)
-
-st.dataframe(
-    toko_teratas[['Nama Toko', 'Kategori', 'Lokasi', 'Rating', 'Pengiriman (hari)', 'Promo', 'Sukses (%)', 'Skor (%)']],
-    use_container_width=True
-)
         
+        df_table = df_result[['nama_toko', 'kategori', 'lokasi', 'rating', 'waktu_pengiriman', 
+                                'jumlah_promo', 'tingkat_sukses', 'skor_persen']].copy()
+        df_table.columns = ['Nama Toko', 'Kategori', 'Lokasi', 'Rating', 'Pengiriman (hari)', 
+                            'Promo', 'Sukses (%)', 'Skor (%)']
+        df_table = df_table.reset_index(drop=True)
+        df_table.index = df_table.index + 1
+        
+        st.dataframe(df_table, use_container_width=True, height=400)
+        
+        # Analisis
+        st.subheader("📊 Analisis Hasil")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Rata-rata Rating", f"{df_result['rating'].mean():.2f}/5")
+        with col2:
+            st.metric("Rata-rata Pengiriman", f"{df_result['waktu_pengiriman'].mean():.1f} hari")
+        with col3:
+            st.metric("Rata-rata Promo", f"{df_result['jumlah_promo'].mean():.1f}")
+        with col4:
+            st.metric("Rata-rata Sukses", f"{df_result['tingkat_sukses'].mean():.1f}%")
 
 else:
     # Tampilan awal
