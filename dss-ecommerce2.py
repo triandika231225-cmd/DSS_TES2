@@ -170,10 +170,9 @@ with st.sidebar:
     
     total_weight = weight_rating + weight_ulasan + weight_pengiriman + weight_sukses + weight_komplain + weight_promo + weight_respon
     
+    # NOTE: saya hapus st.success untuk menghilangkan kotak hijau "Total bobot: 100%"
     if total_weight != 100:
         st.warning(f"⚠️ Total bobot: {total_weight}%. Sistem akan menormalisasi bobot agar jumlah = 100%.")
-    else:
-        st.success("✅ Total bobot: 100%")
     
     # Raw bobot (0..1) berdasarkan slider
     raw_weights = {
@@ -195,17 +194,7 @@ with st.sidebar:
     else:
         normalized_weights = {k: v / sum_raw for k, v in raw_weights.items()}
     
-    # Tampilkan bobot yang digunakan (dinormalisasi)
-    st.caption("Bobot yang digunakan (dinormalisasi):")
-    st.write({
-        'Rating': f"{normalized_weights['rating']*100:.1f}%",
-        'Ulasan': f"{normalized_weights['ulasan']*100:.1f}%",
-        'Pengiriman': f"{normalized_weights['pengiriman']*100:.1f}%",
-        'Sukses': f"{normalized_weights['sukses']*100:.1f}%",
-        'Komplain': f"{normalized_weights['komplain']*100:.1f}%",
-        'Promo': f"{normalized_weights['promo']*100:.1f}%",
-        'Respon': f"{normalized_weights['respon']*100:.1f}%"
-    })
+    # NOTE: saya hapus tampilan JSON bobot yang dinormalisasi di sini sesuai permintaan.
     
     st.markdown("---")
     cari_button = st.button("🔍 Cari Rekomendasi", type="primary", use_container_width=True)
@@ -239,28 +228,10 @@ if cari_button:
         st.header("🏆 Hasil Rekomendasi Toko")
         st.caption(f"Ditemukan {len(df_result)} toko yang sesuai dengan preferensi Anda")
         
-        # Filter tambahan
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            filter_pengiriman = st.checkbox("🚀 Hanya Pengiriman Cepat (≤2 hari)")
-        with col2:
-            filter_promo = st.checkbox("🎁 Hanya dengan Promo (≥3)")
-        with col3:
-            filter_rating = st.checkbox("⭐ Hanya Rating Tinggi (≥4.7)")
-        
-        # Apply filters
-        df_display = df_result.copy()
-        if filter_pengiriman:
-            df_display = df_display[df_display['waktu_pengiriman'] <= 2]
-        if filter_promo:
-            df_display = df_display[df_display['jumlah_promo'] >= 3]
-        if filter_rating:
-            df_display = df_display[df_display['rating'] >= 4.7]
-        
         st.markdown("---")
         
         # Tampilkan top 3 dalam card
-        top_3 = df_display.head(3)
+        top_3 = df_result.head(3)
         
         if len(top_3) > 0:
             st.subheader("🥇 Top 3 Rekomendasi")
@@ -301,28 +272,15 @@ if cari_button:
         
         # Tampilkan semua hasil dalam tabel
         st.subheader("📋 Semua Hasil Rekomendasi")
+
+# Batasi hanya 5 toko teratas
+toko_teratas = hasil_df.head(5)
+
+st.dataframe(
+    toko_teratas[['Nama Toko', 'Kategori', 'Lokasi', 'Rating', 'Pengiriman (hari)', 'Promo', 'Sukses (%)', 'Skor (%)']],
+    use_container_width=True
+)
         
-        df_table = df_display[['nama_toko', 'kategori', 'lokasi', 'rating', 'waktu_pengiriman', 
-                                'jumlah_promo', 'tingkat_sukses', 'skor_persen']].copy()
-        df_table.columns = ['Nama Toko', 'Kategori', 'Lokasi', 'Rating', 'Pengiriman (hari)', 
-                            'Promo', 'Sukses (%)', 'Skor (%)']
-        df_table = df_table.reset_index(drop=True)
-        df_table.index = df_table.index + 1
-        
-        st.dataframe(df_table, use_container_width=True, height=400)
-        
-        # Analisis
-        st.subheader("📊 Analisis Hasil")
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Rata-rata Rating", f"{df_display['rating'].mean():.2f}/5")
-        with col2:
-            st.metric("Rata-rata Pengiriman", f"{df_display['waktu_pengiriman'].mean():.1f} hari")
-        with col3:
-            st.metric("Rata-rata Promo", f"{df_display['jumlah_promo'].mean():.1f}")
-        with col4:
-            st.metric("Rata-rata Sukses", f"{df_display['tingkat_sukses'].mean():.1f}%")
 
 else:
     # Tampilan awal
@@ -357,7 +315,6 @@ else:
         - ✅ Penyesuaian bobot kriteria
         - ✅ Ranking otomatis dengan weighted scoring
         - ✅ Alasan rekomendasi yang jelas
-        - ✅ Filter tambahan hasil
         - ✅ Analisis perbandingan toko
         """)
     
